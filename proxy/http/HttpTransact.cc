@@ -3710,8 +3710,17 @@ HttpTransact::handle_response_from_server(State *s)
       } else {
         retry_server_connection_not_open(s, s->current.state, max_connect_retries);
         DebugTxn("http_trans", "[handle_response_from_server] Error. Retrying...");
-        s->next_action = how_to_open_connection(s);
-        return;
+
+        if (s->state_machine->ua_session->host_res_style == HOST_RES_IPV4) {
+          s->state_machine->ua_session->host_res_style = HOST_RES_IPV6;
+        } else if (s->state_machine->ua_session->host_res_style == HOST_RES_IPV6) {
+          s->state_machine->ua_session->host_res_style = HOST_RES_IPV4;
+        } else {
+          s->next_action = how_to_open_connection(s);
+          return;
+        }
+
+        TRANSACT_RETURN(SM_ACTION_DNS_LOOKUP, OSDNSLookup);
       }
     } else {
       DebugTxn("http_trans", "[handle_response_from_server] Error. No more retries.");
